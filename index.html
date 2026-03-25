@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event System</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #000, #1a1a1a);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.card {
+    background: #111;
+    padding: 25px;
+    border-radius: 12px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(255,215,0,0.3);
+}
+h2 { color: gold; }
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border: none;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    background: gold;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+button:hover {
+    background: #ffcc00;
+}
+
+.back-btn {
+    background: #333;
+}
+.back-btn:hover {
+    background: #555;
+}
+
+.message { margin-top: 10px; }
+.success { color: #00ffcc; }
+.error { color: red; }
+
+.hidden { display: none; }
+
+table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 8px;
+    border-bottom: 1px solid #444;
+}
+th { color: gold; }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+    <!-- STEP 1 -->
+    <div id="choice">
+        <h2>Are you?</h2>
+        <button onclick="choose('new')">New User</button>
+        <button onclick="choose('existing')">Registered User</button>
+        <button onclick="choose('admin')">Admin</button>
+    </div>
+
+    <!-- NAME INPUT -->
+    <div id="nameSection" class="hidden">
+        <h2 id="title"></h2>
+        <input type="text" id="nameInput" placeholder="Enter your name">
+        <input type="password" id="passwordInput" placeholder="Password (admin only)">
+        <button onclick="processUser()">Continue</button>
+        <button class="back-btn" onclick="goBack('name')">⬅ Back</button>
+        <div id="msg" class="message"></div>
+    </div>
+
+    <!-- EVENT -->
+    <div id="eventSection" class="hidden">
+        <h2>Select Event</h2>
+        <select id="eventSelect">
+            <option value="">Choose Event</option>
+            <option>Tech Fest</option>
+            <option>Sports Meet</option>
+            <option>Cultural Night</option>
+        </select>
+        <button onclick="saveEvent()">Confirm</button>
+        <button class="back-btn" onclick="goBack('event')">⬅ Back</button>
+        <div id="eventMsg" class="message"></div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="adminPanel" class="hidden">
+        <h2>Admin Dashboard</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Event</th>
+                </tr>
+            </thead>
+            <tbody id="tableData"></tbody>
+        </table>
+        <button class="back-btn" onclick="goBack('admin')">⬅ Back</button>
+    </div>
+
+</div>
+
+<script>
+let mode = "";
+let currentUser = "";
+
+// STORAGE
+function getData() {
+    return JSON.parse(localStorage.getItem("students")) || [];
+}
+function saveData(data) {
+    localStorage.setItem("students", JSON.stringify(data));
+}
+
+// CHOOSE
+function choose(type) {
+    mode = type;
+    document.getElementById("choice").classList.add("hidden");
+    document.getElementById("nameSection").classList.remove("hidden");
+
+    if (type === "new") {
+        document.getElementById("title").innerText = "New Registration";
+    } else if (type === "existing") {
+        document.getElementById("title").innerText = "Login (Registered User)";
+    } else {
+        document.getElementById("title").innerText = "Admin Login";
+    }
+}
+
+// PROCESS USER
+function processUser() {
+    let name = document.getElementById("nameInput").value.trim();
+    let pass = document.getElementById("passwordInput").value.trim();
+    let msg = document.getElementById("msg");
+
+    let students = getData();
+
+    if (mode === "admin") {
+        if (name === "admin" && pass === "1234") {
+            document.getElementById("nameSection").classList.add("hidden");
+            document.getElementById("adminPanel").classList.remove("hidden");
+            loadTable();
+        } else {
+            msg.innerHTML = "Invalid admin credentials";
+            msg.className = "message error";
+        }
+        return;
+    }
+
+    if (name === "") {
+        msg.innerHTML = "Enter name";
+        msg.className = "message error";
+        return;
+    }
+
+    let exists = students.find(s => s.name.toLowerCase() === name.toLowerCase());
+
+    if (mode === "new") {
+        if (exists) {
+            msg.innerHTML = "Already registered";
+            msg.className = "message error";
+        } else {
+            currentUser = name;
+            msg.innerHTML = "Registered successfully!";
+            msg.className = "message success";
+            moveToEvent();
+        }
+    }
+
+    if (mode === "existing") {
+        if (!exists) {
+            msg.innerHTML = "User not found";
+            msg.className = "message error";
+        } else {
+            currentUser = name;
+            msg.innerHTML = "Welcome back!";
+            msg.className = "message success";
+            moveToEvent();
+        }
+    }
+}
+
+// MOVE
+function moveToEvent() {
+    setTimeout(() => {
+        document.getElementById("nameSection").classList.add("hidden");
+        document.getElementById("eventSection").classList.remove("hidden");
+    }, 600);
+}
+
+// SAVE EVENT
+function saveEvent() {
+    let event = document.getElementById("eventSelect").value;
+    let msg = document.getElementById("eventMsg");
+
+    if (event === "") {
+        msg.innerHTML = "Select an event";
+        msg.className = "message error";
+        return;
+    }
+
+    let students = getData();
+    let index = students.findIndex(s => s.name.toLowerCase() === currentUser.toLowerCase());
+
+    if (index !== -1) {
+        students[index].event = event;
+    } else {
+        students.push({ name: currentUser, event });
+    }
+
+    saveData(students);
+
+    msg.innerHTML = "Event registered successfully!";
+    msg.className = "message success";
+}
+
+// ADMIN TABLE
+function loadTable() {
+    let students = getData();
+    let table = document.getElementById("tableData");
+    table.innerHTML = "";
+
+    students.forEach(s => {
+        table.innerHTML += `
+        <tr>
+            <td>${s.name}</td>
+            <td>${s.event}</td>
+        </tr>`;
+    });
+}
+
+// BACK FUNCTION
+function goBack(from) {
+    // clear messages
+    document.getElementById("msg").innerHTML = "";
+    document.getElementById("eventMsg").innerHTML = "";
+
+    if (from === "name") {
+        document.getElementById("nameSection").classList.add("hidden");
+        document.getElementById("choice").classList.remove("hidden");
+    }
+
+    if (from === "event") {
+        document.getElementById("eventSection").classList.add("hidden");
+        document.getElementById("choice").classList.remove("hidden");
+    }
+
+    if (from === "admin") {
+        document.getElementById("adminPanel").classList.add("hidden");
+        document.getElementById("choice").classList.remove("hidden");
+    }
+}
+</script>
+
+</body>
+</html>
